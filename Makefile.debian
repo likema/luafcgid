@@ -15,6 +15,8 @@ CONFDIR = /etc/luafcgid
 INITDIR = /etc/init.d
 # Directory in which to put Lua modules
 PACKAGEPATH = $(PREFIX)/share/lua/5.1
+# Directory in which to put man pages
+MANPATH = $(PREFIX)/share/man
 
 # Lua 5.1 config
 LUAINC = $(PREFIX)/include/lua5.1
@@ -52,19 +54,13 @@ $(EXEC): $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 
 install: all
-	install -b $(EXEC) $(BINDIR)
-	@mkdir -p $(PACKAGEPATH)
-	install -b ../scripts/luafcgid.lua $(PACKAGEPATH)/luafcgid.lua
-	@mkdir -p $(CONFDIR)
-	install -b ../scripts/etc/config.debian.lua $(CONFDIR)/config.lua
-	cd ../docs; $(MAKE) install
+	install -d $(addprefix $(DESTDIR), $(BINDIR) $(PACKAGEPATH) $(CONFDIR) $(INITDIR) $(MANPATH)/man1 $(MANPATH)/man5)
+	install -m 0755 $(EXEC) $(DESTDIR)$(BINDIR)
+	install -m 0644 scripts/luafcgid.lua $(DESTDIR)$(PACKAGEPATH)/luafcgid.lua
+	install -m 0644 scripts/etc/config.debian.lua $(DESTDIR)$(CONFDIR)/config.lua
+	install -m 0755 scripts/etc/init.d/luafcgid.debian $(DESTDIR)$(INITDIR)/luafcgid
+	install -m 0644 docs/luafcgid.1.gz $(DESTDIR)/$(MANPATH)/man1
+	install -m 0644 docs/luafcgid-config.5.gz $(DESTDIR)/$(MANPATH)/man5
 
 clean:
 	rm -f $(OBJECTS) $(EXEC)
-
-install-daemon: all
-	cp -f etc/init.d/luafcgid.debian $(INITDIR)/luafcgid
-	update-rc.d -f luafcgid defaults
-
-docs:
-	cd ../docs; $(MAKE)
