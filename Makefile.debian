@@ -17,7 +17,7 @@ INITDIR = /etc/init.d
 PACKAGEPATH = $(PREFIX)/share/lua/5.1
 
 # Lua 5.1 config
-LUAINC = $(PREFIX)/include/lua51
+LUAINC = $(PREFIX)/include/lua5.1
 LUALIB = $(PREFIX)/lib
 LLIB = lua5.1
 
@@ -40,7 +40,7 @@ OPTS = -O2
 CFLAGS = $(INCS) $(WARN) $(OPTS) $(DEBUG) $G
 LDFLAGS = $(LIBS) $(OPTS) $(DEBUG)
 
-VPATH = ../$(SRCDIR)
+VPATH = $(SRCDIR)
 
 SOURCES = main.c config.c pool.c buffer.c request.c
 OBJECTS = $(SOURCES:%.c=%.o)
@@ -49,7 +49,7 @@ EXEC = luafcgid
 all: $(SOURCES) $(EXEC)
 
 $(EXEC): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 
 install: all
 	install -b $(EXEC) $(BINDIR)
