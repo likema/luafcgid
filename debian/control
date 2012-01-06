@@ -1,0 +1,20 @@
+Source: luafcgid
+Section: net
+Priority: optional
+Maintainer: Like Ma <likemartinma@gmail.com>
+Build-Depends: debhelper (>= 8.0.0), libfcgi-dev, liblua5.1-0-dev
+Standards-Version: 3.9.2
+Homepage: https://github.com/STPeters/luafcgid
+
+Package: luafcgid
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Lua FastCGI Server
+  luafcgid is a multithreaded FastCGI server that runs under BSD/Linux.
+  .
+  It manages a number of independent, persistent Lua states, that are then
+  loaded with Lua scripts from the file system. These scripts are loaded/
+  initialized on demand, and held in memory for as long as possible. The Lua
+  scripts are also allowed to interface with the FastCGI libraries: thus
+  providing an extremely fast, streamlined and lightweight platform from
+  which to develop web-centric apps in Lua.

@@ -1,0 +1,19 @@
+luafcgid (1.0.1-2) unstable; urgency=low
+
+  * Fix incorrect sleep time for sweeping.
+
+ -- Like Ma <likemartinma@gmail.com>  Wed, 02 May 2012 02:34:14 +0800
+
+luafcgid (1.0.1-1) unstable; urgency=low
+
+  * Set listening socket and accepted socket to close on exec for avoiding
+    port leak when lua scripts call system or fork+exec.
+
+ -- Like Ma <likemartinma@gmail.com>  Wed, 15 Feb 2012 18:47:23 +0800
+
+
+luafcgid (1.0.1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Like Ma <likemartinma@gmail.com>  Thu, 05 Jan 2012 16:07:03 +0800
