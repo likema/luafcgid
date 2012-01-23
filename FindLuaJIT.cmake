@@ -1,0 +1,50 @@
+# Locate Lua 5.1 library
+# This module defines
+#  LUA51_FOUND, if false, do not try to link to Lua
+#  LUA_LIBRARY_DIR
+#  LUA_LIBRARIES
+#  LUA_INCLUDE_DIR, where to find lua.h
+
+OPTION (ENABLE_LUAJIT_STATIC "Enable static linking luajit" OFF)
+
+FIND_PACKAGE (PkgConfig)
+IF (PKG_CONFIG_FOUND)
+	PKG_CHECK_MODULES (luajit luajit>=2.0.0)
+ENDIF (PKG_CONFIG_FOUND)
+
+IF (luajit_FOUND)
+	SET (LUA_INCLUDE_DIR ${luajit_INCLUDE_DIRS})
+	SET (LUA_LIBRARIES ${luajit_LIBRARIES})
+	SET (LUA_LIBRARY_DIR ${luajit_LIBRARY_DIRS})
+	IF (PKG_CONFIG_EXECUTABLE)
+		EXECUTE_PROCESS (COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=INSTALL_LMOD luajit
+			OUTPUT_VARIABLE LUA_MODULE_DIR
+			OUTPUT_STRIP_TRAILING_WHITESPACE)
+	ENDIF (PKG_CONFIG_EXECUTABLE)
+ENDIF (luajit_FOUND)
+
+IF (NOT LUA_MODULE_DIR)
+	SET (LUA_MODULE_DIR share/lua/5.1)
+ENDIF (NOT LUA_MODULE_DIR)
+
+IF (ENABLE_LUAJIT_STATIC)
+	FIND_LIBRARY (LUAJIT_LIBRARY
+		NAMES libluajit-5.1.a
+		HINTS
+		$ENV{LUAJIT_DIR}
+		PATH_SUFFIXES lib64 lib
+		PATHS
+		~/Library/Frameworks
+		/Library/Frameworks
+		/usr/local
+		/usr
+		/sw
+		/opt/local
+		/opt/csw
+		/opt
+	)
+
+	IF (LUAJIT_LIBRARY)
+		SET (LUA_LIBRARIES ${LUAJIT_LIBRARY} m dl)
+	ENDIF (LUAJIT_LIBRARY)
+ENDIF (ENABLE_LUAJIT_STATIC)
