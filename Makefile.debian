@@ -2,10 +2,7 @@
 
 SHELL = /bin/sh
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-# Common prefix 
+# Common prefix
 PREFIX = /usr
 # Directory in which to put the executable
 BINDIR = $(PREFIX)/bin
@@ -14,14 +11,13 @@ CONFDIR = /etc/luafcgid
 # Directory in which to put rc.d/initd scripts
 INITDIR = /etc/init.d
 # Directory in which to put Lua modules
-PACKAGEPATH = $(PREFIX)/share/lua/5.1
+PACKAGEPATH = $(shell pkg-config --variable=INSTALL_LMOD lua5.1)
 # Directory in which to put man pages
 MANPATH = $(PREFIX)/share/man
 
 # Lua 5.1 config
-LUAINC = $(PREFIX)/include/lua5.1
-LUALIB = $(PREFIX)/lib
-LLIB = lua5.1
+LUAINC = $(shell pkg-config --cflags lua5.1)
+LUALIB = $(shell pkg-config --libs lua5.1)
 
 ## LuaJIT2
 #LUAINC = $(PREFIX)/include/luajit-2.0
@@ -32,15 +28,16 @@ SRCDIR = src
 OBJDIR = obj
 
 # basic setup
-CC = gcc
 WARN = -Wall -pedantic -ansi -std=c89
-INCS = -I$(PREFIX)/include -I$(LUAINC)
-LIBS = -L$(PREFIX)/lib -L$(LUALIB) -lm -lpthread -lfcgi -l$(LLIB)
+INCS = $(LUAINC)
+
 #DEBUG = -ggdb
+
 OPTS = -O2
 #OPTS = -O3 -march=native
-CFLAGS = $(INCS) $(WARN) $(OPTS) $(DEBUG) $G
-LDFLAGS = $(LIBS) $(OPTS) $(DEBUG)
+
+CFLAGS = $(INCS) $(WARN) $(OPTS) $(DEBUG)
+LDLIBS = $(LUALIB) -lm -lpthread -lfcgi
 
 VPATH = $(SRCDIR)
 
@@ -48,10 +45,10 @@ SOURCES = main.c config.c pool.c buffer.c request.c
 OBJECTS = $(SOURCES:%.c=%.o)
 EXEC = luafcgid
 	
-all: $(SOURCES) $(EXEC)
+all: $(EXEC)
 
 $(EXEC): $(OBJECTS)
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 install: all
 	install -d $(addprefix $(DESTDIR), $(BINDIR) $(PACKAGEPATH) $(CONFDIR) $(INITDIR) $(MANPATH)/man1 $(MANPATH)/man5)
