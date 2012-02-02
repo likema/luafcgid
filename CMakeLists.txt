@@ -34,3 +34,50 @@ INSTALL (FILES scripts/etc/config.debian.lua DESTINATION /etc/luafcgid RENAME co
 INSTALL (FILES scripts/luafcgid.lua DESTINATION ${LUA_MODULE_DIR})
 INSTALL (FILES docs/luafcgid.1.gz DESTINATION share/man/man1)
 INSTALL (FILES docs/luafcgid-config.5.gz DESTINATION share/man/man5)
+
+SET (CPACK_GENERATOR "DEB")
+SET (CPACK_PACKAGE_NAME ${CMAKE_PROJECT_NAME})
+
+SET (CPACK_PACKAGE_VERSION_MAJOR "1")
+SET (CPACK_PACKAGE_VERSION_MINOR "0")
+SET (CPACK_PACKAGE_VERSION_PATCH "1")
+SET (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-3")
+SET (CPACK_PACKAGE_CONTACT "Like Ma <likemartinma@gmail.com>")
+
+FIND_PROGRAM(DPKG_CMD dpkg)
+IF (DPKG_CMD)
+	EXECUTE_PROCESS (COMMAND "${DPKG_CMD}" --print-architecture
+		OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE
+		OUTPUT_STRIP_TRAILING_WHITESPACE)
+ELSE (DPKG_CMD)
+	MESSAGE (STATUS "CPackDeb: Can not find dpkg in your path, default to i386.")
+	SET (CPACK_DEBIAN_PACKAGE_ARCHITECTURE i386)
+ENDIF (DPKG_CMD)
+
+SET (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+SET (CPACK_SOURCE_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME})
+
+SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Lua FastCGI Server
+  luafcgid is a multithreaded FastCGI server that runs under BSD/Linux.
+  .
+  It manages a number of independent, persistent Lua states, that are then
+  loaded with Lua scripts from the file system. These scripts are loaded/
+  initialized on demand, and held in memory for as long as possible. The Lua
+  scripts are also allowed to interface with the FastCGI libraries: thus
+  providing an extremely fast, streamlined and lightweight platform from
+  which to develop web-centric apps in Lua.")
+
+SET (CPACK_DEBIAN_PACKAGE_SECTION "net")
+SET (CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/STPeters/luafcgid")
+SET (CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+SET (CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/prerm;${CMAKE_CURRENT_SOURCE_DIR}/cmake_debian/conffiles")
+
+IF (ENABLE_LUAJIT_STATIC OR ENABLE_LUAJIT)
+	SET (DEB_BUILDS_LUA_DEP libluajit-5.1-dev)
+ELSE (ENABLE_LUAJIT_STATIC OR ENABLE_LUAJIT)
+	SET (DEB_BUILDS_LUA_DEP liblua5.1-dev)
+ENDIF (ENABLE_LUAJIT_STATIC OR ENABLE_LUAJIT)
+
+SET (DEBIAN_PACKAGE_BUILDS_DEPENDS "libfcgi-dev, ${DEB_BUILDS_LUA_DEP}, cmake (>=2.8.0)")
+
+INCLUDE (CPack)
