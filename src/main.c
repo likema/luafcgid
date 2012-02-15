@@ -6,6 +6,7 @@
  */
 
 #include "main.h"
+#include <fcntl.h>
 
 const char* CRLF = "\r\n";
 
@@ -247,6 +248,8 @@ static void *worker_run(void *a) {
 		pthread_mutex_lock(&accept_mutex);
 		rc = FCGX_Accept_r(&req.fcgi); /* blocking call */
 		pthread_mutex_unlock(&accept_mutex);
+
+		fcntl(req.fcgi.ipcFd, F_SETFD, fcntl(req.fcgi.ipcFd, F_GETFD) | FD_CLOEXEC);
 
 		/* SIGTERM */
 		if (rc < 0)
@@ -583,6 +586,8 @@ int main(int arc, char** argv) {
 		logit("[PARENT] unable to create accept socket!");
 		return 1;
 	}
+
+	fcntl(sock, F_SETFD, fcntl(sock, F_GETFD) | FD_CLOEXEC);
 
 	pool = pool_open(conf->states);
 
