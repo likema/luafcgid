@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include <fcntl.h>
+#include <signal.h>
 
 const char* CRLF = "\r\n";
 
@@ -553,6 +554,12 @@ void daemon(int nochdir, int noclose) {
 }
 #endif
 
+static void sig_child (int signum)
+{
+	while (waitpid(-1, 0, WNOHANG) > 0)
+		;
+}
+
 int main(int arc, char** argv) {
 
 	int i, sock;
@@ -566,6 +573,7 @@ int main(int arc, char** argv) {
 	time_t now;
 	time_t lastsweep;
 	int interval;
+	struct sigaction reap_child = { 0 };
 
 	if (arc > 1 && argv[1]) {
 		conf = config_load(argv[1]);
@@ -578,6 +586,9 @@ int main(int arc, char** argv) {
 	/* redirect stderr to logfile */
 	if (conf->logfile)
 		freopen(conf->logfile, "w", stderr);
+
+	reap_child.sa_handler = sig_child;
+	sigaction(SIGCHLD, &reap_child, 0);
 
 	FCGX_Init();
 
