@@ -527,7 +527,7 @@ int daemon(int nochdir, int noclose) {
 }
 #endif
 
-#ifdef NO_DAEMON
+#if HAVE_DAEMON != 1
 /* just in case there are a few older Linux users out there... */
 #include <sys/resource.h>
 #include <fcntl.h>
@@ -580,7 +580,7 @@ int daemon(int nochdir, int noclose) {
 
 	return 0;
 }
-#endif
+#endif /* HAVE_DAEMON != 1 */
 
 static void sig_child (int signum)
 {
