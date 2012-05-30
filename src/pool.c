@@ -4,12 +4,10 @@ pool_t* pool_open(int count) {
 	pool_t* pool = NULL;
 	if (count) {
 		/* alloc pool */
-		pool = (pool_t*)malloc(sizeof(pool_t));
-		memset(pool, 0, sizeof(pool_t));
+		pool = (pool_t*) calloc(1, sizeof(pool_t));
 		assert(pool);
-		pool->slot = (slot_t*)malloc(sizeof(slot_t) * count);
+		pool->slot = (slot_t*) calloc(count, sizeof(slot_t));
 		assert(pool->slot);
-		memset(pool->slot, 0, sizeof(slot_t) * count);
 		/* init pool */
 		pool->count = count;
 		pool->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;

@@ -6,8 +6,7 @@ config_t* config_load(const char* fn) {
 	char* fbuf = NULL;
     char errmsg[ERR_SIZE + 1];
 
-    config_t* cf = (config_t*)malloc(sizeof(config_t));
-    memset(cf, 0, sizeof(config_t));
+    config_t* cf = (config_t*)calloc(1, sizeof(config_t));
 
 	/* defaults */
 	cf->listen = (char*)malloc(strlen(LISTEN_PATH) + 1);

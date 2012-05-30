@@ -149,8 +149,7 @@ char* script_load(const char* fn, struct stat* fs) {
 		if (S_ISREG(fs->st_mode) && fs->st_size) {
 			fp = fopen(fn, "rb");
 			if (fp) {
-				fbuf = (char*) malloc(fs->st_size);
-				memset(fbuf, 0, fs->st_size);
+				fbuf = (char*) calloc(1, fs->st_size);
 				fread(fbuf, fs->st_size, 1, fp);
 				fclose(fp);
 			}
@@ -603,8 +602,8 @@ int main(int arc, char** argv) {
 	pool = pool_open(conf->states);
 
 	/* alloc worker data & params */
-	worker = (worker_t*) malloc(sizeof(worker_t) * conf->workers);
-	params = (params_t*) malloc(sizeof(params_t) * conf->workers);
+	worker = (worker_t*) calloc(conf->workers, sizeof(worker_t));
+	params = (params_t*) calloc(conf->workers, sizeof(params_t));
 
 	/* check allocs */
 	if (!worker || !params) {
@@ -612,9 +611,6 @@ int main(int arc, char** argv) {
 		config_free(conf);
 		return 1;
 	}
-
-	memset(worker, 0, sizeof(worker_t) * conf->workers);
-	memset(params, 0, sizeof(params_t) * conf->workers);
 
 	for (i = 0; i < conf->workers; i++) {
 		/* initialize worker params */
