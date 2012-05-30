@@ -9,8 +9,7 @@ config_t* config_load(const char* fn) {
     config_t* cf = (config_t*)calloc(1, sizeof(config_t));
 
 	/* defaults */
-	cf->listen = (char*)malloc(strlen(LISTEN_PATH) + 1);
-	strcpy(cf->listen, LISTEN_PATH);
+	cf->listen = strdup(LISTEN_PATH);
     cf->workers = 3;
     cf->states = 5;
     cf->clones = cf->workers;
@@ -21,18 +20,13 @@ config_t* config_load(const char* fn) {
     cf->buffering = TRUE;
     cf->headersize = 64;
     cf->bodysize = 1024;
-    cf->handler = (char*)malloc(strlen(HANDLER) + 1);
-	strcpy(cf->handler, HANDLER);
-	cf->headers = (char*)malloc(strlen(HEADERS) + 1);
-	strcpy(cf->headers, HEADERS);
-    cf->httpstatus = (char*)malloc(strlen(HTTP_STATUS) + 1);
-	strcpy(cf->httpstatus, HTTP_STATUS);
-    cf->contenttype = (char*)malloc(strlen(HTTP_CONTENTTYPE) + 1);
-	strcpy(cf->contenttype, HTTP_CONTENTTYPE);
+    cf->handler = strdup(HANDLER);
+	cf->headers = strdup(HEADERS);
+    cf->httpstatus = strdup(HTTP_STATUS);
+    cf->contenttype = strdup(HTTP_CONTENTTYPE);
     cf->maxpost = 1024 * 1024;
     cf->maxcount = 0;
-	cf->logfile = (char*)malloc(strlen(LOGFILE) + 1);
-	strcpy(cf->logfile, LOGFILE);
+	cf->logfile = strdup(LOGFILE);
 	cf->backlog = -1;
 
     if (fn) fbuf = script_load(fn, &fs);
