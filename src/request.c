@@ -47,12 +47,12 @@ int L_req_header(lua_State *L) {
 		if (lua_gettop(L) == 3) {
 			s2 = luaL_checklstring(L, 3, &l2);
 			buffer_add(&r->header, s1, l1);
-			buffer_add(&r->header, ": ", -1);
+			buffer_add(&r->header, COLON_SPACE, COLON_SPACE_LEN);
 			buffer_add(&r->header, s2, l2);
-			buffer_add(&r->header, CRLF, -1);
+			buffer_add(&r->header, CRLF, CRLF_LEN);
 		} else {
 			buffer_add(&r->header, s1, l1);
-			buffer_add(&r->header, CRLF, -1);
+			buffer_add(&r->header, CRLF, CRLF_LEN);
 		}
     }
 	return 0;

@@ -5,7 +5,7 @@
 
 #ifdef DEBUG
 #define CHATTER
-#else
+#elif !defined(NDEBUG)
 #define NDEBUG
 #endif
 
@@ -131,6 +131,10 @@ config_t* config_load(const char* fn);
 void send_header(request_t* req);
 void send_body(request_t* req);
 
-extern const char* CRLF;
+#define CRLF "\r\n"
+#define CRLF_LEN (sizeof(CRLF) - 1)
+
+#define COLON_SPACE ": "
+#define COLON_SPACE_LEN (sizeof(COLON_SPACE) - 1)
 
 #endif /* MAIN_H_INCLUDED */

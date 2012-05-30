@@ -8,8 +8,7 @@
 #include "main.h"
 #include <fcntl.h>
 #include <signal.h>
-
-const char* CRLF = "\r\n";
+#include <errno.h>
 
 /* utility functions */
 
@@ -141,7 +140,7 @@ void send_header(request_t* req) {
 	if (req->header.len)
 		FCGX_PutStr(req->header.data, req->header.len, req->fcgi.out);
 	/* don't forget the CRLF terminator */
-	FCGX_PutStr(CRLF, strlen(CRLF), req->fcgi.out);
+	FCGX_PutStr(CRLF, CRLF_LEN, req->fcgi.out);
 	req->headers_sent = TRUE;
 }
 
@@ -165,7 +164,11 @@ char* script_load(const char* fn, struct stat* fs) {
 			fp = fopen(fn, "rb");
 			if (fp) {
 				fbuf = (char*) calloc(1, fs->st_size);
-				fread(fbuf, fs->st_size, 1, fp);
+				if (fread(fbuf, fs->st_size, 1, fp) != 1) {
+					logit("[%d] unable to fread %s, errno=%d", fn, errno);
+					free(fbuf);
+					fbuf = 0;
+				}
 				fclose(fp);
 			}
 		}
@@ -301,7 +304,8 @@ static void *worker_run(void *a) {
 			split = strrchr(script, SEP);
 			if (split) {
 				*split = '\0';
-				chdir(script);
+				if (chdir(script) < 0)
+					logit("[%d] unable to chdir %s, errno=%d", params->wid, script, errno);
 				*split = SEP;
 			}
 		}
@@ -517,8 +521,9 @@ static void *worker_run(void *a) {
 }
 
 #ifdef _WIN32
-void daemon(int nochdir, int noclose) {
+int daemon(int nochdir, int noclose) {
 	/* No daemon() on Windows - use srvany */
+	return 0;
 }
 #endif
 
@@ -526,7 +531,7 @@ void daemon(int nochdir, int noclose) {
 /* just in case there are a few older Linux users out there... */
 #include <sys/resource.h>
 #include <fcntl.h>
-void daemon(int nochdir, int noclose) {
+int daemon(int nochdir, int noclose) {
 	/* Turn this process into a daemon
 	 * based on work by JOACHIM Jona <jaj@hcl-club.lu>
 	 */
@@ -538,24 +543,24 @@ void daemon(int nochdir, int noclose) {
 
 	if((pid = fork()) < 0) {
 		logit("[DAEMON] unable to fork");
-		exit(1);
+		return -1;
 	} else if(pid != 0) { /* parent */
 		exit(0);
 	}
 
 	if(setsid() < 0) { /* become a session leader, lose controlling terminal */
 		logit("[DAEMON] setsid error");
-		exit(1);
+		return -1;
 	}
 	if(nochdir == 0) {
 		if(chdir("/") < 0) {
 			logit("[DAEMON] chdir error");
-			exit(1);
+			return -1;
 		}
 	}
 	if(getrlimit(RLIMIT_NOFILE, &fplim) < 0) {
 		logit("[DAEMON] getrlimit error");
-		exit(1);
+		return -1;
 	}
 	for(i = 0; i < fplim.rlim_max; i++) close(i); /* close all open files */
 
@@ -569,9 +574,11 @@ void daemon(int nochdir, int noclose) {
 
 		if(fd0 != 0 || fd1 != 1 || fd2 != 2) {
 			logit("[DAEMON] unexected file descriptors");
-			exit(1);
+			return -1;
 		}
 	}
+
+	return 0;
 }
 #endif
 
@@ -602,11 +609,19 @@ int main(int arc, char** argv) {
 		conf = config_load("config.lua");
 	}
 
-	daemon(0, 0);
+	if (daemon(0, 0) < 0) {
+		fprintf(stderr, "unable to daemonize, errno=%d, %s\n",
+			errno, strerror(errno));
+		return 1;
+	}
 
 	/* redirect stderr to logfile */
-	if (conf->logfile)
-		freopen(conf->logfile, "w", stderr);
+	if (conf->logfile && !freopen(conf->logfile, "w", stderr)) {
+		/* no fd with stderr now, usually errno=13, Permission denied */
+		printf("unable to redirect stderr to %s, errno=%d, %s\n",
+			conf->logfile, errno, strerror(errno));
+		fflush(stdout);
+	}
 
 	reap_child.sa_handler = sig_child;
 	sigaction(SIGCHLD, &reap_child, 0);
