@@ -44,9 +44,13 @@ BOOL luaL_getglobal_str(lua_State* L, const char* name, char** v) {
 		if (r && l) {
 			if (*v)
 				free(*v);
+#if HAVE_STRNDUP == 1
+			*v = strndup (r, l);
+#else
 			*v = (char*) malloc(l + 1);
 			strncpy(*v, r, l);
 			(*v)[l] = '\0';
+#endif /* HAVE_STRNDUP == 1 */
 			lua_pop(L, 1);
 			return TRUE;
 		}
@@ -108,7 +112,13 @@ void luaL_pushcgicontent(lua_State* L, request_t* r) {
 
 void send_header(request_t* req) {
 	/* generate minimum headers */
-	char* header = malloc(strlen(req->httpstatus) + strlen(req->contenttype) + 27);
+	{
+#if HAVE_ALLOCA_H == 1
+	char* header = (char*) alloca(strlen(req->httpstatus) + strlen(req->contenttype) + 27);
+#else
+	char* header = (char*) malloc(strlen(req->httpstatus) + strlen(req->contenttype) + 27);
+#endif /* HAVE_ALLOCA_H == 1 */
+
 	if (!header) {
 		logit("out of memory!");
 		return;
@@ -118,7 +128,12 @@ void send_header(request_t* req) {
 			req->httpstatus,
 			req->contenttype);
 	FCGX_PutStr(header, strlen(header), req->fcgi.out);
+#if HAVE_ALLOCA_H == 1
+#else
 	free(header);
+#endif /* HAVE_ALLOCA_H == 1 */
+	}
+
 	/* output any global custom headers */
 	if (req->conf->headers)
 		FCGX_PutStr(req->conf->headers, strlen(req->conf->headers), req->fcgi.out);
@@ -175,9 +190,13 @@ void timestamp(char* ts) {
 void logit(const char* fmt, ...) {
 	va_list args;
 	char ts[20] = { '\0' };
-	char *str = NULL;
+
 	/* make a copy and add the timestamp */
-	str = (char*) malloc(20 + strlen(fmt) + 2);
+#if HAVE_ALLOCA_H == 1
+	char *str = (char*) alloca(20 + strlen(fmt) + 2);
+#else
+	char *str = (char*) malloc(20 + strlen(fmt) + 2);
+#endif /* HAVE_ALLOCA_H == 1 */
 	timestamp(ts);
 	sprintf(str, "%s %s\n", ts, fmt);
 	/* we just let stderr route it */
@@ -185,7 +204,10 @@ void logit(const char* fmt, ...) {
 	vfprintf(stderr, str, args);
 	fflush(stderr);
 	va_end(args);
+#if HAVE_ALLOCA_H == 1
+#else
 	free(str);
+#endif /* HAVE_ALLOCA_H == 1 */
 }
 
 /* worker thread */
