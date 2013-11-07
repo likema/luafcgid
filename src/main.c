@@ -352,9 +352,14 @@ static void *worker_run(void *a) {
 			fbuf = script_load(script, &fs);
 
 			if (fbuf) {
+				int err;
 				#ifdef CHATTER
 				logit("\t[%d] loaded '%s'", params->wid, script, found);
 				#endif
+
+				if ((err = pthread_rwlock_rdlock(&pool->reap_lock))) {
+					logit("\t[%d] Failed to read lock reap, errno=%d", params->wid, err);
+				}
 
 				/* TODO: run state startup hook */
 				/* load and run buffer */
@@ -363,6 +368,9 @@ static void *worker_run(void *a) {
 					rc = lua_pcall(L, 0, 0, 0);
 				/* cleanup */
 				free(fbuf);
+
+				if (!err && (err = pthread_rwlock_unlock(&pool->reap_lock)))
+					logit("\t[%d] Failed to unlock reap, errno=%d", params->wid, err);
 			}
 
 			if (rc == STATUS_OK) {
@@ -582,12 +590,6 @@ int daemon(int nochdir, int noclose) {
 }
 #endif /* HAVE_DAEMON != 1 */
 
-static void sig_child (int signum)
-{
-	while (waitpid(-1, 0, WNOHANG) > 0)
-		;
-}
-
 int main(int arc, char** argv) {
 
 	int i, sock;
@@ -601,7 +603,8 @@ int main(int arc, char** argv) {
 	time_t now;
 	time_t lastsweep;
 	int interval;
-	struct sigaction reap_child = { 0 };
+	struct timespec tv, current;
+	int rc;
 
 	if (arc > 1 && argv[1]) {
 		conf = config_load(argv[1]);
@@ -622,9 +625,6 @@ int main(int arc, char** argv) {
 			conf->logfile, errno, strerror(errno));
 		fflush(stdout);
 	}
-
-	reap_child.sa_handler = sig_child;
-	sigaction(SIGCHLD, &reap_child, 0);
 
 	FCGX_Init();
 
@@ -663,12 +663,42 @@ int main(int arc, char** argv) {
 
 	lastsweep = time(NULL);
 
-	struct timespec tv;
-	tv.tv_sec = conf->sweep / 1000;
-	tv.tv_nsec = (conf->sweep % 1000) * 1000000;
 	for (;;) {
-		/* chill till the next sweep */
-		nanosleep(&tv, NULL);
+		clock_gettime(CLOCK_REALTIME, &tv);
+		tv.tv_sec += conf->sweep / 1000;
+		tv.tv_nsec += (conf->sweep % 1000) * 1000000;
+
+		rc = pthread_rwlock_timedwrlock(&pool->reap_lock, &tv);
+		switch (rc) {
+			case ETIMEDOUT:
+				break;
+			case 0:
+				while (waitpid(-1, 0, WNOHANG) > 0)
+					;
+
+				if ((rc = pthread_rwlock_unlock(&pool->reap_lock))) {
+					logit("Failed to unlock reap, errno=%d", rc);
+					rc = 0;
+				}
+			default: /* chill till the next sweep */
+				if (rc)
+					logit("Failed to write lock reap, errno=%d", rc);
+
+				clock_gettime(CLOCK_REALTIME, &current);
+				tv.tv_sec -= current.tv_sec;
+				tv.tv_nsec -= current.tv_nsec;
+
+				for (; tv.tv_sec >= 0; --tv.tv_sec) {
+					if (tv.tv_nsec >= 0)
+						break;
+
+					tv.tv_nsec += 1000000;
+				}
+
+				if (tv.tv_sec > 0 || (!tv.tv_sec && tv.tv_nsec > 0))
+					nanosleep(&tv, NULL);
+		}
+
 		/* how long was the last cycle? */
 		now = time(NULL);
 		interval = now - lastsweep;

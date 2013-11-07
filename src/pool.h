@@ -20,6 +20,8 @@ struct pool_struct {
 	int count;
 	pthread_mutex_t mutex;
 	slot_t* slot;
+
+	pthread_rwlock_t reap_lock;
 } typedef pool_t;
 
 #define pool_lock(p) pthread_mutex_lock(&p->mutex)

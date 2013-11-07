@@ -11,6 +11,7 @@ pool_t* pool_open(int count) {
 		/* init pool */
 		pool->count = count;
 		pool->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+		pool->reap_lock = (pthread_rwlock_t) PTHREAD_RWLOCK_INITIALIZER;
 	}
 	return pool;
 }
