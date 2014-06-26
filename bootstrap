@@ -1,0 +1,35 @@
+#!/bin/sh
+
+ARCH=`dpkg --print-architecture`
+JOBS=`grep -c '^processor' /proc/cpuinfo`
+
+cost () {
+	duration=`expr $2 - $1`
+	if [ $duration -gt 60 ]; then
+		min=`expr $duration / 60`
+		sec=`expr $duration % 60`
+		echo "$min minutes $sec seconds"
+	else
+		echo "$duration seconds"
+	fi
+}
+
+is_deb_installed () {
+	dpkg --get-selections $1 2>/dev/null | sed "s/:$ARCH//" | grep -q "$1[[:blank:]]\+install"
+}
+
+install_deb () {
+	for i do
+		if is_deb_installed $i; then
+			echo "$i is already installed."
+		else
+			echo "Installing $i ..."
+			sudo apt-get -y install $i
+		fi
+	done
+}
+
+install_deb cmake liblua5.1-0-dev libfcgi-dev
+cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release && \
+	make -j$JOBS && \
+	cpack
